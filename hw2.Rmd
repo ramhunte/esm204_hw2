@@ -17,7 +17,7 @@ library(equatiomatic)
 ```
 
 #### 1. 
-For each campus, plot the marginal abatement cost data and estimate a linear regression model with zero intercept.1 These estimated linear regressions will be your estimates of the marginal abatement cost curve for each campus, which you will use for the remainder of this analysis. Write the equation for the marginal abatement cost curve for each campus.
+*For each campus, plot the marginal abatement cost data and estimate a linear regression model with zero intercept.1 These estimated linear regressions will be your estimates of the marginal abatement cost curve for each campus, which you will use for the remainder of this analysis. Write the equation for the marginal abatement cost curve for each campus.*
 
 
 ```{r, fig.cap = "This graph shows the marginal abatement cost for each UC unvisersity. UCD has the highest MAC and UCLA has the lowest. This tells us that UCD pays the most for each increase in ton of carbon abaited and UCLA pays the least." }
@@ -81,7 +81,7 @@ extract_eq(ucd_mac, use_coefs = TRUE,coef_digits = 6)
 
 
 #### 2. 
-Using your estimated marginal abatement cost curves, together with the baseline emissions, derive each campus’ demand curve for carbon. In other words, how much would each campus be willing to pay to emit the first ton of carbon, the second ton of carbon, etc.2 Plot each campus’ demand curve for emissions on a single graph. Which campus is willing to pay the most for the first ton of carbon emissions?
+*Using your estimated marginal abatement cost curves, together with the baseline emissions, derive each campus’ demand curve for carbon. In other words, how much would each campus be willing to pay to emit the first ton of carbon, the second ton of carbon, etc.2 Plot each campus’ demand curve for emissions on a single graph. Which campus is willing to pay the most for the first ton of carbon emissions?*
 
 
 ```{r}
@@ -135,26 +135,122 @@ ggplot(uc_dem, aes(x= abatement, y = dem, color = school)) +
 ```
 
 
+#### Demand linear model equation 
 
-put the slope equations in here 
+**UCSB** 
+```{r}
+ucsb_dem_lm <- lm(dem ~ abatement, data = ucsb_dem)
+extract_eq(ucsb_dem_lm, use_coefs = TRUE, coef_digits = 6)
+```
 
+
+
+**UCLA**
+```{r}
+ucla_dem_lm <- lm(dem ~ abatement, data = ucla_dem)
+extract_eq(ucla_dem_lm, use_coefs = TRUE, coef_digits = 6)
+```
+
+**UCI**
+```{r}
+uci_dem_lm <- lm(dem ~ abatement, data = uci_dem)
+extract_eq(uci_dem_lm, use_coefs = TRUE, coef_digits = 6)
+```
+
+**UCD**
+```{r}
+ucd_dem_lm <- lm(dem ~ abatement, data = ucd_dem)
+extract_eq(ucd_dem_lm, use_coefs = TRUE, coef_digits = 6)
+```
+
+
+As seen in the demand curves for each school, UCD is willing to pay the most for the first ton of carbon at about $484.
 
 
 
 #### 3. 
-Here you will analyze three alternative interventions for reducing carbon emissions across these four campuses. Please answer the questions about each intervention listed below.
+*Here you will analyze three alternative interventions for reducing carbon emissions across these four campuses. Please answer the questions about each intervention listed below.*
 
 
 #### a. Intervention #1: Carbon Tax: 
 
-Each campus must pay a tax of $50/ton for each ton of emissions. How much would each campus choose to emit? How much would each campus abate? What is the total amount of emissions across all four campuses? How much tax revenue is generated?
 
-horizontal line at 50 
+```{r}
+# make a function that finds Q from P 
+find_q <- function(a, p, b){
+  q <- (a-p)/-b
+  return(q)
+} 
 
-make a function that finds Q from P 
+
+#function to find the price given the quantity
+find_p <- function(a, b, q){
+  p <- a + b*q
+  return(p)
+}
 
 
+#aply it to each school
+```
 
+
+```{r}
+###################### UCSB ######################
+#how much would be emited?
+ucsb_emit <- find_q(a = ucsb_dem_lm$coefficients[1], p = 50, b = ucsb_dem_lm$coefficients[2] )
+
+#how much would be abated?
+(90000 - ucsb_emit)
+
+####################### UCLA  ######################################
+#UCLA
+#how much would be emited?
+ucla_emit <- find_q(a = ucla_dem_lm$coefficients[1], p = 50, b = ucla_dem_lm$coefficients[2] )
+
+#how much would be abated?
+(250000 - ucla_emit)
+
+
+#######################  UCI  ######################################
+#UCI
+#how much would be emited?
+uci_emit <- find_q(a = uci_dem_lm$coefficients[1], p = 50, b = uci_dem_lm$coefficients[2] )
+#how much would be abated?
+(100000 - uci_emit)
+
+
+######################  UCD   #######################################
+
+ucd_emit <- find_q(a = ucd_dem_lm$coefficients[1], p = 50, b = ucd_dem_lm$coefficients[2] )
+#how much would be abated?
+(160000 - ucd_emit)
+
+
+######################  All UC   #######################################
+
+uc_emit_tot <- ucsb_emit + ucla_emit + uci_emit + ucd_emit
+
+uc_revenue <- uc_emit_tot*50
+```
+*Each campus must pay a tax of $50/ton for each ton of emissions. How much would each campus choose to emit? How much would each campus abate?*
+
+**UCSB**
+UCSB will emit  40209.19  and abate 49790.81 tons of carbon when the price is $50 per ton of carbon.
+
+**UCLA**
+UCLA will emit  178717.5  and abate 71282.47 tons of carbon when the price is $50 per ton of carbon.
+
+**UCI**
+UCI will emit 75096.24 and abate 24903.76 tons of carbon when the price is $50 per ton of carbon.
+
+**UCD**
+UCD will emit 143466.4 and abate 16533.62 tons of carbon when the price is $50 per ton of carbon.
+
+
+*What is the total amount of emissions across all four campuses? How much tax revenue is generated?*
+
+All of the UC's combined would generate 437489.3 tons of carbon if each ton of carbon were taxed at $50. This translates into 
+$21,874,467 of tax revenue generated.
 
 
 
@@ -163,9 +259,28 @@ make a function that finds Q from P
 
 #### b. Intervention #2: Carbon Ban: 
 
-Carbon emissions are banned at each campus. What is the total cost of this ban to each campus?
+*Carbon emissions are banned at each campus. What is the total cost of this ban to each campus?*
 
-calculate the area of the triangle demand for each campus 
+
+
+```{r}
+################### UCSB #########################
+ucsb_0 <- .5*(90000)*ucsb_dem_lm$coefficients[1]
+ucla_0 <- .5*(250000)*ucla_dem_lm$coefficients[1]
+uci_0 <- .5*(100000)*uci_dem_lm$coefficients[1]
+ucd_0 <- .5*(160000)*ucd_dem_lm$coefficients[1]
+```
+
+The total cost of banning carbon at each campus would be:
+
+**UCSB: $4,067,016  **
+
+**UCLA: $21,919,836  **
+
+**UCI: $10,038,644  **
+
+**UCD: $38,709,018 **
+
 
 #### c. Intervention #3: Cap without Trade: 
 
