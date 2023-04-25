@@ -1,0 +1,228 @@
+---
+title: "hw2"
+author: "Ray Hunter and Elleri Griffiths"
+date: "2023-04-24"
+output:
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=TRUE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(janitor)
+library(here)
+library(equatiomatic)
+
+```
+
+#### 1. 
+For each campus, plot the marginal abatement cost data and estimate a linear regression model with zero intercept.1 These estimated linear regressions will be your estimates of the marginal abatement cost curve for each campus, which you will use for the remainder of this analysis. Write the equation for the marginal abatement cost curve for each campus.
+
+
+```{r, fig.cap = "This graph shows the marginal abatement cost for each UC unvisersity. UCD has the highest MAC and UCLA has the lowest. This tells us that UCD pays the most for each increase in ton of carbon abaited and UCLA pays the least." }
+ab_data <- read.csv(here("CarbonUC.csv")) %>% 
+  clean_names() %>% 
+ pivot_longer(
+   cols = c(ucsb:ucd), 
+   names_to = "school", 
+    values_to = "mca") 
+
+
+ggplot(ab_data, aes( x = abatement, y = mca, color = school)) + 
+  geom_jitter() + 
+  geom_smooth()+ 
+  theme_minimal() + 
+  labs( title = " UC Marginal Abatement Cost (MAC) for Carbon ", y = "$/ton of carbon", x = "Tons of carbon abated")
+
+
+
+
+
+```
+
+```{r}
+
+
+# creating linear models for mac for each school 
+ucsb_mac <- lm(mca~ 0 + abatement, data = filter(ab_data, school == "ucsb"))
+
+
+ucla_mac <- lm(mca~ 0 + abatement, data = filter(ab_data, school == "ucla"))
+
+
+uci_mac <- lm(mca~ 0 + abatement, data = filter(ab_data, school == "uci"))
+
+
+ucd_mac <- lm(mca~ 0 + abatement, data = filter(ab_data, school == "ucd"))
+```
+
+**UCSB**
+```{r}
+#showing the equations in pretty form 
+extract_eq(ucsb_mac, use_coefs = TRUE, coef_digits = 6)
+```
+
+**UCLA**
+```{r}
+extract_eq(ucla_mac, use_coefs = TRUE, coef_digits = 6)
+```
+
+**UCI**
+```{r}
+extract_eq(uci_mac, use_coefs = TRUE, coef_digits = 6)
+```
+
+**UCD**
+```{r}
+extract_eq(ucd_mac, use_coefs = TRUE,coef_digits = 6)
+```
+
+
+
+#### 2. 
+Using your estimated marginal abatement cost curves, together with the baseline emissions, derive each campus’ demand curve for carbon. In other words, how much would each campus be willing to pay to emit the first ton of carbon, the second ton of carbon, etc.2 Plot each campus’ demand curve for emissions on a single graph. Which campus is willing to pay the most for the first ton of carbon emissions?
+
+
+```{r}
+
+
+#creating a demand function that adds the willingness to pay of abatement for each university into the df
+# A = Q_b - Q
+# p = slope(A)
+demand <- function(ab_data, dem, slope, Q_b, abatement) {
+  ab_data[[dem]]<- slope*(Q_b - ab_data[[abatement]])
+  ab_data
+                   
+}
+
+
+
+#applying the demand to each school using the slope from the mac linear models and the total pollution for each campus 
+
+ucsb_dem <- demand(filter(ab_data, school == "ucsb"), slope = ucsb_mac[[1]], "dem",  Q_b = 90000, "abatement")
+ucla_dem <- demand(filter(ab_data, school == "ucla"), slope = ucla_mac[[1]], "dem",  Q_b = 250000, "abatement")
+uci_dem <- demand(filter(ab_data, school == "uci"), slope = uci_mac[[1]], "dem",  Q_b = 100000, "abatement")
+ucd_dem <- demand(filter(ab_data, school == "ucd"), slope = ucd_mac[[1]], "dem",  Q_b = 160000, "abatement")
+
+
+
+
+
+#combining them into one df 
+uc_dem <- ucsb_dem %>% 
+  full_join(ucla_dem) %>% 
+  full_join(uci_dem) %>% 
+  full_join(ucd_dem) %>% 
+  arrange(abatement )
+```
+
+
+
+
+
+
+
+
+
+```{r, fig.cap = "This graph shows the different demand curves for carbon pollution of each UC university. UCLA has the largest demand and UCSB has the shortest demand." }
+#creating a graph of each university WTP
+ggplot(uc_dem, aes(x= abatement, y = dem, color = school)) +
+  geom_smooth() +
+  labs( title = "UC Willingess to Pay (demand) for Carbon ", y = "$/ton of carbon", x = "Tons of carbon polluted") +
+  ylim(0, 500) +
+  theme_minimal()
+```
+
+
+
+put the slope equations in here 
+
+
+
+
+#### 3. 
+Here you will analyze three alternative interventions for reducing carbon emissions across these four campuses. Please answer the questions about each intervention listed below.
+
+
+#### a. Intervention #1: Carbon Tax: 
+
+Each campus must pay a tax of $50/ton for each ton of emissions. How much would each campus choose to emit? How much would each campus abate? What is the total amount of emissions across all four campuses? How much tax revenue is generated?
+
+horizontal line at 50 
+
+make a function that finds Q from P 
+
+
+
+
+
+
+
+
+
+#### b. Intervention #2: Carbon Ban: 
+
+Carbon emissions are banned at each campus. What is the total cost of this ban to each campus?
+
+calculate the area of the triangle demand for each campus 
+
+#### c. Intervention #3: Cap without Trade: 
+
+Each campus is capped at 100,000 tons of carbon. How much abatement would be required by each campus to comply with this cap? What is the marginal cost of the last unit of abatement for each campus? What is the total cost of abatement for each campus to comply with this new cap?
+
+calculate the small traingles for each university where they hit 0
+
+#### d. Intervention #4: Cap with Trade: 
+
+Suppose each campus is capped at 100,000 tons of carbon, but trade is allowed. With trade, total emissions will be 400,000 but some campuses may emit more or less than 100,000. How much would each campus end up emitting after trade? What is the equilibrium trading price of carbon permits? For each campus, calculate whether they are a buyer or a seller of permits.
+
+even if a school is fine (ex. UCI or UCSB), they may want to sell their permits 
+
+find the aggregate demand of each schools 
+for each P you want to add up the demands 
+
+total quantity allocated = 400,000 (for all schools combined)
+
+find  the P at the aggregte demand for 400,000 and see where that line crosses each universuties individual demand
+
+look at first picture
+
+
+
+
+p = a - slope(Q)
+slope(Q) = a - p
+Q = a/slope - P/slope 
+
+#### 4. 
+
+The central campus decides to go with the “Cap with Trade” approach (Scenario 3d above). An altruistic philanthropist buys 50,000 of the permits from the cap and trade market and retires them (i.e. not emit the carbon), so only 350,000 tons will be emitted. What is the new trading price among the four campuses? How much will it cost the philanthropist to buy and retire these permits?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
