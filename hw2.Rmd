@@ -13,7 +13,7 @@ library(tidyverse)
 library(janitor)
 library(here)
 library(equatiomatic)
-
+library(pracma)
 ```
 
 #### 1. 
@@ -55,6 +55,39 @@ uci_mac <- lm(mca~ 0 + abatement, data = filter(ab_data, school == "uci"))
 
 
 ucd_mac <- lm(mca~ 0 + abatement, data = filter(ab_data, school == "ucd"))
+
+
+
+
+
+
+#creating a function to calc abatement cost for ucla 
+ucsb_abate_func <- function(q) {
+ p <-ucsb_mac[[1]]*q
+return(p)
+}
+
+
+
+#creating a function to calc abatement cost for ucla 
+ucla_abate_func <- function(q) {
+ p <-ucla_mac[[1]]*q
+return(p)
+}
+
+#creating a function to calc abatement cost for ucla 
+uci_abate_func <- function(q) {
+ p <-uci_mac[[1]]*q
+return(p)
+}
+
+#creating a function to calc abatement cost for ucla 
+ucd_abate_func <- function(q) {
+ p <-ucd_mac[[1]]*q
+return(p)
+}
+
+
 ```
 
 **UCSB**
@@ -271,6 +304,8 @@ uci_0 <- .5*(100000)*uci_dem_lm$coefficients[1]
 ucd_0 <- .5*(160000)*ucd_dem_lm$coefficients[1]
 ```
 
+
+
 The total cost of banning carbon at each campus would be:
 
 **UCSB: $4,067,016  **
@@ -284,31 +319,146 @@ The total cost of banning carbon at each campus would be:
 
 #### c. Intervention #3: Cap without Trade: 
 
-Each campus is capped at 100,000 tons of carbon. How much abatement would be required by each campus to comply with this cap? What is the marginal cost of the last unit of abatement for each campus? What is the total cost of abatement for each campus to comply with this new cap?
+*Each campus is capped at 100,000 tons of carbon.*
 
 calculate the small traingles for each university where they hit 0
 
+
+```{r}
+ucsb_abait <- 100000 - 90000
+ucla_abait <- 100000 - 250000
+uci_abait <- 100000 - 100000
+ucd_abait <- 100000 - 160000
+
+
+#################### price of MCA of last unit #######################################
+
+#ucsb
+ucsb_abate_func( q= 0)
+
+#ucla
+
+ucla_abate_func( q= 150000)
+
+#uci
+uci_abate_func(q= 0)
+
+#ucd
+ucd_abate_func( q= 60000)
+
+
+
+
+#################### total cost of abaitment for each campus #############################
+
+
+
+
+ucsb_ab_cost <- integrate(ucsb_abate_func, lower = 0, upper  = 0)
+
+
+ucla_ab_cost <- integrate(ucla_abate_func, lower = 0, upper  = 150000)
+
+uci_ab_cost <- integrate(uci_abate_func, lower = 0, upper  = 0)
+
+ucd_ab_cost <- integrate(ucd_abate_func, lower = 0, upper  = 60000)
+
+
+```
+*How much abatement would be required by each campus to comply with this cap?*
+**UCSB: 0 tons  **
+
+**UCLA: 150,000 tons  **
+
+**UCI: 0 tons  **
+
+**UCD: 60,000 tons **
+
+
+ *What is the marginal cost of the last unit of abatement for each campus?*
+**UCSB: $0  **
+
+**UCLA: $105.2152   **
+
+**UCI: $0  **
+
+**UCD: $42.08608  **
+
+
+*What is the total cost of abatement for each campus to comply with this new cap?*
+
+**UCSB:  $0 **
+
+**UCLA:  $7891141  **
+
+**UCI: $0  **
+
+**UCD: $5,443,456 **
+
+
+
+
 #### d. Intervention #4: Cap with Trade: 
 
-Suppose each campus is capped at 100,000 tons of carbon, but trade is allowed. With trade, total emissions will be 400,000 but some campuses may emit more or less than 100,000. How much would each campus end up emitting after trade? What is the equilibrium trading price of carbon permits? For each campus, calculate whether they are a buyer or a seller of permits.
-
-even if a school is fine (ex. UCI or UCSB), they may want to sell their permits 
-
-find the aggregate demand of each schools 
-for each P you want to add up the demands 
-
-total quantity allocated = 400,000 (for all schools combined)
-
-find  the P at the aggregte demand for 400,000 and see where that line crosses each universuties individual demand
-
-look at first picture
+*Suppose each campus is capped at 100,000 tons of carbon, but trade is allowed. With trade, total emissions will be 400,000 but some campuses may emit more or less than 100,000.*
 
 
+```{r}
+
+#making a new df creating the aggregate demand 
+trade_data <- data.frame(price = seq(0,500, length.out=101)) %>% 
+  
+  #new colomn for ucsb finding the quantity demanded at each price 
+  mutate(Q_ucsb = pmax(0, find_q(a= ucsb_dem_lm$coefficients[[1]], p = trade_data$price, b=ucsb_dem_lm$coefficients[[2]] ))) %>% 
+  mutate(Q_ucla = pmax(0, find_q(a= ucla_dem_lm$coefficients[[1]], p = trade_data$price, b=ucla_dem_lm$coefficients[[2]] ))) %>% 
+  mutate(Q_uci = pmax(0, find_q(a= uci_dem_lm$coefficients[[1]], p = trade_data$price, b=uci_dem_lm$coefficients[[2]] ))) %>% 
+  mutate(Q_ucd = pmax(0, find_q(a= ucd_dem_lm$coefficients[[1]], p = trade_data$price, b=ucd_dem_lm$coefficients[[2]] ))) %>% 
+  
+  #adding up each of the quantities demanded at each price 
+  mutate(Q_agg = Q_ucsb + Q_ucla + Q_uci + Q_ucd)
 
 
-p = a - slope(Q)
-slope(Q) = a - p
-Q = a/slope - P/slope 
+
+
+#finding the pstar at the total Qbar of 400000
+pstar = stats::spline(x=trade_data$Q_agg, y=trade_data$price, xout=4e5)$y
+pstar
+
+
+
+#How much would eahc campus emit? 
+
+ucsb_trade_dem <- find_q(a= ucsb_dem_lm$coefficients[[1]], p = pstar, b = ucsb_dem_lm$coefficients[[2]])
+ucsb_trade_dem
+
+ucla_trade_dem <- find_q(a= ucla_dem_lm$coefficients[[1]], p = pstar, b = ucla_dem_lm$coefficients[[2]])
+ucla_trade_dem
+
+uci_trade_dem <- find_q(a= uci_dem_lm$coefficients[[1]], p = pstar, b = uci_dem_lm$coefficients[[2]])
+uci_trade_dem
+
+ucd_trade_dem <- find_q(a= ucd_dem_lm$coefficients[[1]], p = pstar, b = ucd_dem_lm$coefficients[[2]])
+ucd_trade_dem
+```
+*How much would each campus end up emitting after trade? For each campus, calculate whether they are a buyer or a seller of permits.*
+
+Because each unversity is capped at 100,000 tons of carbon individually, they will be considered a **seller** if they demand less than 100,000 tons at the equilibrium price (p star) and they will be considered a **buyer** if their demand is more than 100,000 tons at equilibrium. After trading, each university will emit this much carbon.:
+
+**UCSB carbon emissions:  28,722.86 tons (seller)**
+
+**UCLA carbon emissions:  162,273.3 tons (buyer)**
+
+**UCI carbon emissions: 69,351.15 tons (seller)**
+
+**UCD carbon emissions: 139,652.2 tons (buyer)**
+
+
+*What is the equilibrium trading price of carbon permits?* 
+
+The equilibrium price (p star) for the aggregate demand of pollution for all combined universities capped at 400,000 tons of carbon is **$61.53459**. 
+
+
+
 
 #### 4. 
 
@@ -318,7 +468,7 @@ The central campus decides to go with the “Cap with Trade” approach (Scenari
 
 
 
-
+redo question 3d with 350000 instead of 400000
 
 
 
