@@ -78,13 +78,13 @@ ucla_abate_func <- function(q) {
 return(p)
 }
 
-#creating a function to calc abatement cost for ucla 
+#creating a function to calc abatement cost for uci 
 uci_abate_func <- function(q) {
  p <-uci_mac[[1]]*q
 return(p)
 }
 
-#creating a function to calc abatement cost for ucla 
+#creating a function to calc abatement cost for ucd 
 ucd_abate_func <- function(q) {
  p <-ucd_mac[[1]]*q
 return(p)
@@ -389,11 +389,11 @@ ucd_ab_cost <- integrate(ucd_abate_func, lower = 0, upper  = 60000)
  
 **UCSB: $0  **
 
-**UCLA: $105.2152   **
+**UCLA: $105.22   **
 
 **UCI: $0  **
 
-**UCD: $42.08608  **
+**UCD: $181.45   ** 
 
 
 *What is the total cost of abatement for each campus to comply with this new cap?*
@@ -404,7 +404,7 @@ ucd_ab_cost <- integrate(ucd_abate_func, lower = 0, upper  = 60000)
 
 **UCI: $0  **
 
-**UCD: $5,443,456 **
+**UCD: $5,443,456 ** 
 
 
 
